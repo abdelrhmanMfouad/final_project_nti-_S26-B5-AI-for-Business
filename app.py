@@ -1,236 +1,30 @@
 
-import streamlit as st
-import pandas as pd
-import numpy as np
+import json
 import joblib
+import pandas as pd
+import streamlit as st
 
 
+# ============================================================
+# PAGE CONFIG
+# ============================================================
 
 st.set_page_config(
-    page_title="Blight Compliance AI",
+    page_title="Blight Compliance Predictor",
     page_icon="🏠",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="centered"
 )
 
 
-st.markdown("""
-<style>
-
-.stApp {
-    background: #f5f7fb;
-}
-
-#MainMenu {
-    visibility: hidden;
-}
-
-footer {
-    visibility: hidden;
-}
-
-header {
-    visibility: hidden;
-}
-
-.block-container {
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-    max-width: 1400px;
-}
-
-
-/* HERO */
-
-.hero {
-    background: linear-gradient(
-        135deg,
-        #111827 0%,
-        #1f2937 50%,
-        #374151 100%
-    );
-
-    padding: 38px 42px;
-    border-radius: 24px;
-    margin-bottom: 28px;
-    color: white;
-
-    box-shadow:
-        0 12px 35px rgba(0,0,0,0.12);
-}
-
-.hero h1 {
-    font-size: 42px;
-    font-weight: 800;
-    margin: 0 0 8px 0;
-}
-
-.hero p {
-    font-size: 17px;
-    color: #d1d5db;
-    margin: 0;
-}
-
-
-/* CARDS */
-
-.card {
-    background: white;
-    padding: 25px;
-    border-radius: 18px;
-    border: 1px solid #e5e7eb;
-
-    box-shadow:
-        0 5px 20px rgba(0,0,0,0.05);
-
-    margin-bottom: 20px;
-}
-
-.card-title {
-    font-size: 21px;
-    font-weight: 750;
-    color: #111827;
-    margin-bottom: 5px;
-}
-
-.card-subtitle {
-    font-size: 14px;
-    color: #6b7280;
-}
-
-
-/* RESULT */
-
-.result-card {
-    padding: 32px;
-    border-radius: 22px;
-    text-align: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-
-.success-card {
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-}
-
-.warning-card {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-}
-
-.danger-card {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-}
-
-.probability {
-    font-size: 50px;
-    font-weight: 850;
-    margin: 10px 0;
-}
-
-.result-title {
-    font-size: 26px;
-    font-weight: 800;
-}
-
-.result-text {
-    font-size: 15px;
-    color: #4b5563;
-}
-
-
-/* RISK BADGES */
-
-.risk-low {
-    display: inline-block;
-    padding: 7px 18px;
-    border-radius: 30px;
-    background: #d1fae5;
-    color: #065f46;
-    font-weight: 700;
-}
-
-.risk-medium {
-    display: inline-block;
-    padding: 7px 18px;
-    border-radius: 30px;
-    background: #fef3c7;
-    color: #92400e;
-    font-weight: 700;
-}
-
-.risk-high {
-    display: inline-block;
-    padding: 7px 18px;
-    border-radius: 30px;
-    background: #fee2e2;
-    color: #991b1b;
-    font-weight: 700;
-}
-
-
-/* SIDEBAR */
-
-section[data-testid="stSidebar"] {
-    background: #111827;
-}
-
-section[data-testid="stSidebar"] * {
-    color: white;
-}
-
-
-/* BUTTON */
-
-.stButton > button {
-    width: 100%;
-    border-radius: 13px;
-    padding: 13px 20px;
-
-    font-size: 16px;
-    font-weight: 700;
-
-    border: none;
-
-    background: #111827;
-    color: white;
-
-    transition: 0.2s;
-}
-
-.stButton > button:hover {
-    background: #374151;
-    transform: translateY(-1px);
-}
-
-
-/* METRICS */
-
-[data-testid="stMetric"] {
-    background: white;
-    padding: 18px;
-
-    border-radius: 15px;
-    border: 1px solid #e5e7eb;
-
-    box-shadow:
-        0 4px 15px rgba(0,0,0,0.04);
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-
-MODEL_PATH = "best_blight_compliance_model.pkl"
-
+# ============================================================
+# LOAD MODEL
+# ============================================================
 
 @st.cache_resource
 def load_model():
 
     return joblib.load(
-        MODEL_PATH
+        "best_blight_compliance_model.pkl"
     )
 
 
@@ -240,169 +34,77 @@ try:
 
 except Exception as e:
 
-    st.error(
-        "❌ Could not load the model."
-    )
+    st.error("❌ Could not load the model.")
 
-    st.code(
-        str(e)
-    )
+    st.code(str(e))
 
     st.info(
         """
-        Make sure that:
+        Make sure:
 
         • best_blight_compliance_model.pkl
           is in the same folder as app.py
 
-        • The required Python packages
-          are installed.
+        • All required packages are installed.
 
-        • The sklearn version is compatible
-          with the version used to train the model.
+        • The model was trained with a compatible
+          scikit-learn version.
         """
     )
 
     st.stop()
 
 
+# ============================================================
+# LOAD OPTIONS
+# ============================================================
 
-with st.sidebar:
+@st.cache_data
+def load_options():
 
-    st.markdown(
-        """
-        <div style="
-            text-align:center;
-            padding:15px 0 25px 0;
-        ">
+    with open(
+        "options.json",
+        "r",
+        encoding="utf-8"
+    ) as file:
 
-            <div style="font-size:55px;">
-                🏠
-            </div>
+        return json.load(file)
 
-            <h2 style="margin:0;">
-                Blight AI
-            </h2>
 
-            <p style="color:#9ca3af;">
-                Compliance Prediction
-            </p>
+try:
 
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    options = load_options()
 
-    st.markdown("---")
+except Exception as e:
 
-    st.markdown("### 🤖 About the Model")
+    st.error("❌ Could not load options.json.")
 
-    st.write(
-        """
-        This Machine Learning system predicts
-        whether a property maintenance ticket
-        is likely to be compliant.
-        """
-    )
+    st.code(str(e))
 
-    st.markdown("---")
-
-    st.markdown("### 📊 Prediction")
-
-    st.write(
-        """
-        The system provides:
-
-        • Compliance prediction
-        • Probability score
-        • Risk level
-        • Business recommendation
-        """
-    )
-
-    st.markdown("---")
-
-    st.caption(
-        "AI for Business Project"
-    )
+    st.stop()
 
 
 # ============================================================
-# HERO
+# HEADER
 # ============================================================
 
-st.markdown(
+st.title("🏠 Blight Compliance Predictor")
+
+st.write(
     """
-    <div class="hero">
-
-        <h1>
-            🏠 Blight Compliance AI
-        </h1>
-
-        <p>
-            AI-powered property maintenance
-            compliance prediction system
-        </p>
-
-    </div>
-    """,
-    unsafe_allow_html=True
+    Use the property and ticket information below
+    to predict whether the ticket is likely to be compliant.
+    """
 )
 
+st.divider()
+
 
 # ============================================================
-# TOP METRICS
+# TICKET INFORMATION
 # ============================================================
 
-col1, col2, col3 = st.columns(3)
-
-
-with col1:
-
-    st.metric(
-        "Problem Type",
-        "Classification"
-    )
-
-
-with col2:
-
-    st.metric(
-        "Target",
-        "Compliance"
-    )
-
-
-with col3:
-
-    st.metric(
-        "AI Output",
-        "Probability"
-    )
-
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-
-
-st.markdown(
-    """
-    <div class="card">
-
-        <div class="card-title">
-            🎯 Ticket Information
-        </div>
-
-        <div class="card-subtitle">
-            Enter the information about the
-            property maintenance ticket.
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
+st.subheader("📋 Ticket Information")
 
 
 col1, col2 = st.columns(2)
@@ -410,40 +112,43 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    agency_name = st.text_input(
+    agency_name = st.selectbox(
         "Agency Name",
-        placeholder="Example: Department of Public Works"
+        options=options["agency_name"],
+        index=None,
+        placeholder="Search or select agency..."
     )
 
-
-with col2:
-
-    disposition = st.text_input(
-        "Disposition",
-        placeholder="Enter disposition"
-    )
-
-
-
-col1, col2 = st.columns(2)
-
-
-with col1:
-
-    city = st.text_input(
+    city = st.selectbox(
         "City",
-        value="Detroit"
+        options=options["city"],
+        index=None,
+        placeholder="Search or select city..."
     )
 
 
 with col2:
 
-    state = st.text_input(
+    state = st.selectbox(
         "State",
-        value="MI"
+        options=options["state"],
+        index=None,
+        placeholder="Search or select state..."
+    )
+
+    disposition = st.selectbox(
+        "Disposition",
+        options=options["disposition"],
+        index=None,
+        placeholder="Search or select disposition..."
     )
 
 
+# ============================================================
+# ADDRESS INFORMATION
+# ============================================================
+
+st.subheader("📍 Address Information")
 
 
 col1, col2 = st.columns(2)
@@ -469,23 +174,11 @@ with col2:
     )
 
 
+# ============================================================
+# FINANCIAL INFORMATION
+# ============================================================
 
-st.markdown(
-    """
-    <div class="card">
-
-        <div class="card-title">
-            💰 Financial Information
-        </div>
-
-        <div class="card-subtitle">
-            Enter ticket-related financial values.
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.subheader("💰 Financial Information")
 
 
 col1, col2, col3 = st.columns(3)
@@ -544,77 +237,102 @@ with col2:
     )
 
 
-
-input_data = pd.DataFrame({
-
-    "agency_name": [
-        agency_name
-    ],
-
-    "violation_street_number": [
-        violation_street_number
-    ],
-
-    "mailing_address_str_number": [
-        mailing_address_str_number
-    ],
-
-    "city": [
-        city
-    ],
-
-    "state": [
-        state
-    ],
-
-    "disposition": [
-        disposition
-    ],
-
-    "fine_amount": [
-        fine_amount
-    ],
-
-    "admin_fee": [
-        admin_fee
-    ],
-
-    "state_fee": [
-        state_fee
-    ],
-
-    "late_fee": [
-        late_fee
-    ],
-
-    "discount_amount": [
-        discount_amount
-    ]
-
-})
-
-with st.expander(
-    "🔎 View submitted information"
-):
-
-    st.dataframe(
-        input_data,
-        use_container_width=True,
-        hide_index=True
-    )
+st.divider()
 
 
+# ============================================================
+# PREDICTION BUTTON
+# ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.subheader("🤖 Prediction")
 
 
 predict_button = st.button(
-    "🔮 Predict Compliance"
+    "🔮 Predict Compliance",
+    use_container_width=True
 )
 
 
+# ============================================================
+# PREDICTION
+# ============================================================
 
 if predict_button:
+
+    # --------------------------------------------------------
+    # CHECK REQUIRED STRING INPUTS
+    # --------------------------------------------------------
+
+    if (
+        agency_name is None
+        or city is None
+        or state is None
+        or disposition is None
+    ):
+
+        st.warning(
+            "⚠️ Please select all required options before predicting."
+        )
+
+        st.stop()
+
+
+    # --------------------------------------------------------
+    # CREATE INPUT DATAFRAME
+    # --------------------------------------------------------
+
+    input_data = pd.DataFrame({
+
+        "agency_name": [
+            agency_name
+        ],
+
+        "violation_street_number": [
+            violation_street_number
+        ],
+
+        "mailing_address_str_number": [
+            mailing_address_str_number
+        ],
+
+        "city": [
+            city
+        ],
+
+        "state": [
+            state
+        ],
+
+        "disposition": [
+            disposition
+        ],
+
+        "fine_amount": [
+            fine_amount
+        ],
+
+        "admin_fee": [
+            admin_fee
+        ],
+
+        "state_fee": [
+            state_fee
+        ],
+
+        "late_fee": [
+            late_fee
+        ],
+
+        "discount_amount": [
+            discount_amount
+        ]
+
+    })
+
+
+    # --------------------------------------------------------
+    # PREDICTION
+    # --------------------------------------------------------
 
     try:
 
@@ -622,178 +340,149 @@ if predict_button:
             input_data
         )[0]
 
-        probability = model.predict_proba(
-            input_data
-        )[0][1]
+
+        # ----------------------------------------------------
+        # PROBABILITY
+        # ----------------------------------------------------
+
+        probability = None
+
+        if hasattr(model, "predict_proba"):
+
+            probabilities = model.predict_proba(
+                input_data
+            )[0]
+
+            # Probability of class 1
+            if len(probabilities) > 1:
+
+                probability = probabilities[1]
 
 
-        probability_percent = (
-            probability * 100
-        )
+        # ----------------------------------------------------
+        # RESULT
+        # ----------------------------------------------------
 
+        st.divider()
 
-
-        if probability >= 0.75:
-
-            risk = "LOW RISK"
-
-            risk_class = "risk-low"
-
-            card_class = "success-card"
-
-            recommendation = """
-            The model estimates a high probability
-            of compliance.
-
-            Standard monitoring and follow-up should
-            be sufficient.
-            """
-
-
-        elif probability >= 0.50:
-
-            risk = "MEDIUM RISK"
-
-            risk_class = "risk-medium"
-
-            card_class = "warning-card"
-
-            recommendation = """
-            The model estimates a moderate probability
-            of compliance.
-
-            Additional monitoring may be useful.
-            """
-
-
-        else:
-
-            risk = "HIGH RISK"
-
-            risk_class = "risk-high"
-
-            card_class = "danger-card"
-
-            recommendation = """
-            The model estimates a low probability
-            of compliance.
-
-            This ticket may require higher-priority
-            follow-up.
-            """
+        st.subheader("📊 Prediction Result")
 
 
         if prediction == 1:
 
-            result_title = (
-                "Likely to Comply"
+            st.success(
+                "### ✅ Likely to Comply"
             )
 
         else:
 
-            result_title = (
-                "Likely Not to Comply"
+            st.error(
+                "### ❌ Likely Not to Comply"
             )
 
 
-        st.markdown(
-            f"""
-            <div class="result-card {card_class}">
+        # ----------------------------------------------------
+        # PROBABILITY
+        # ----------------------------------------------------
 
-                <div class="result-title">
-                    {result_title}
-                </div>
+        if probability is not None:
 
-                <div class="probability">
-                    {probability_percent:.1f}%
-                </div>
-
-                <div class="result-text">
-                    Compliance Probability
-                </div>
-
-                <br>
-
-                <span class="{risk_class}">
-                    {risk}
-                </span>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            probability_percent = (
+                probability * 100
+            )
 
 
+            if probability >= 0.75:
 
-        st.markdown(
-            "### 📊 Compliance Probability"
-        )
+                risk = "Low"
 
-        st.progress(
-            float(probability)
-        )
+            elif probability >= 0.50:
 
+                risk = "Medium"
 
+            else:
 
-        st.markdown(
-            """
-            <div class="card">
-
-                <div class="card-title">
-                    💡 Business Recommendation
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.info(
-            recommendation
-        )
+                risk = "High"
 
 
-        st.markdown(
-            "### 📋 Prediction Details"
-        )
+            col1, col2 = st.columns(2)
 
 
-        result_df = pd.DataFrame({
+            with col1:
 
-            "Metric": [
-                "Prediction",
-                "Probability",
-                "Risk Level"
-            ],
-
-            "Result": [
-                result_title,
-                f"{probability_percent:.2f}%",
-                risk
-            ]
-
-        })
+                st.metric(
+                    "Compliance Probability",
+                    f"{probability_percent:.2f}%"
+                )
 
 
-        st.dataframe(
-            result_df,
-            use_container_width=True,
-            hide_index=True
-        )
+            with col2:
 
+                st.metric(
+                    "Risk Level",
+                    risk
+                )
+
+
+            st.write(
+                "**Compliance Probability**"
+            )
+
+            st.progress(
+                float(probability)
+            )
+
+
+            # ------------------------------------------------
+            # RECOMMENDATION
+            # ------------------------------------------------
+
+            st.subheader("💡 Recommendation")
+
+
+            if probability >= 0.75:
+
+                st.info(
+                    """
+                    The model predicts a high probability
+                    of compliance. Standard follow-up should
+                    be sufficient.
+                    """
+                )
+
+            elif probability >= 0.50:
+
+                st.warning(
+                    """
+                    The model predicts a moderate probability
+                    of compliance. Additional monitoring
+                    may be useful.
+                    """
+                )
+
+            else:
+
+                st.error(
+                    """
+                    The model predicts a low probability
+                    of compliance. Consider prioritizing
+                    this ticket for follow-up.
+                    """
+                )
+
+
+        # ----------------------------------------------------
+        # INPUT SUMMARY
+        # ----------------------------------------------------
 
         with st.expander(
-            "🤖 Model Output"
+            "🔎 View input data"
         ):
 
-            st.write(
-                "Raw prediction:",
-                prediction
-            )
-
-            st.write(
-                "Probability:",
-                probability
+            st.dataframe(
+                input_data,
+                use_container_width=True,
+                hide_index=True
             )
 
 
@@ -805,33 +494,14 @@ if predict_button:
 
         st.exception(e)
 
-        st.warning(
-            """
-            Check that the input columns in this app
-            exactly match the columns used to train
-            the Pipeline.
-            """
-        )
 
+# ============================================================
+# FOOTER
+# ============================================================
 
-st.markdown(
-    """
-    <br><br>
+st.divider()
 
-    <div style="
-        text-align:center;
-        color:#9ca3af;
-        padding:25px;
-        font-size:13px;
-    ">
-
-        <b>Blight Compliance AI</b><br>
-
-        Machine Learning • AI for Business
-
-    </div>
-    """,
-    unsafe_allow_html=True
+st.caption(
+    "Blight Compliance Prediction • AI for Business Project"
 )
-
 
